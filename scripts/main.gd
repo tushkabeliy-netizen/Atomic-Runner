@@ -2,84 +2,82 @@ extends Node3D
 
 const LANE_WIDTH := 2.5
 const FORWARD_SPEED := 13.0
-const TRACK_LENGTH := 180.0
+const PLAYER_Z := 3.0
+const SPAWN_AHEAD := 115.0
+const DESPAWN_BEHIND := 12.0
+const GRAVITY := 24.0
+const JUMP_VELOCITY := 10.0
 
-var player_z := 0.0
 var lane := 0
-var target_x := 0.0
 var vertical_velocity := 0.0
 var jumping := false
 var sliding := false
 var slide_time := 0.0
 var score := 0
-var distance_accumulator := 0.0
+var distance := 0.0
 var game_over := false
 var touch_start := Vector2.ZERO
 var touch_active := false
+var spawn_distance := 0.0
+var rng := RandomNumberGenerator.new()
 
 var player: Node3D
 var player_body: MeshInstance3D
 var camera: Camera3D
 var score_label: Label
-var hint_label: Label
+var status_label: Label
 var world_root: Node3D
+var token_material: StandardMaterial3D
+var obstacle_material: StandardMaterial3D
 
 func _ready() -> void:
+    rng.randomize()
+    token_material = _material(Color(1.0, 0.68, 0.12), true)
+    obstacle_material = _material(Color(0.42, 0.22, 0.13))
     _build_world()
     _build_player()
-    _build_ui()
     _build_camera()
+    _build_ui()
+    _spawn_initial_course()
 
 func _build_world() -> void:
     world_root = Node3D.new()
     world_root.name = "World"
     add_child(world_root)
-    var ground := _box("Ground", Vector3(9.0, 0.4, TRACK_LENGTH), Vector3(0, -0.35, -TRACK_LENGTH * 0.42), Color(0.18, 0.20, 0.18))
-    world_root.add_child(ground)
+    _box(world_root, "Road", Vector3(9.0, 0.35, 260.0), Vector3(0, -0.22, -105.0), Color(0.13, 0.15, 0.14))
     for side in [-1, 1]:
-        var curb := _box("Curb", Vector3(0.22, 0.22, TRACK_LENGTH), Vector3(side * 4.6, -0.12, -TRACK_LENGTH * 0.42), Color(0.72, 0.58, 0.25))
-        world_root.add_child(curb)
-        for i in range(12):
-            var z := -8.0 - float(i) * 14.0
-            var h := 7.0 + float((i * 7) % 9)
-            var building := _box("DistantBlock", Vector3(5.0, h, 7.0), Vector3(side * (9.0 + float(i % 3) * 2.0), h * 0.5 - 0.2, z), Color(0.34, 0.36, 0.32))
-            world_root.add_child(building)
-            var stripe := _box("FacadeStripe", Vector3(5.05, 0.18, 0.16), Vector3(side * (9.0 + float(i % 3) * 2.0), h * 0.65, z - 3.58), Color(0.72, 0.23, 0.12))
-            world_root.add_child(stripe)
-    for i in range(35):
-        var z := -12.0 - float(i) * 4.6
-        var line := _box("LaneMark", Vector3(0.055, 0.018, 2.0), Vector3(0, -0.13, z), Color(0.78, 0.72, 0.48))
-        world_root.add_child(line)
-    for i in range(16):
-        var z := -18.0 - float(i) * 10.0
-        var lane_index := (i * 7 + 1) % 3 - 1
-        if i % 3 == 0:
-            var token := _cylinder("Token", 0.42, 0.12, Vector3(lane_index * LANE_WIDTH, 1.15, z), Color(0.95, 0.68, 0.16))
-            world_root.add_child(token)
-        else:
-            var obstacle := _box("Obstacle", Vector3(1.35, 1.25, 1.0), Vector3(lane_index * LANE_WIDTH, 0.45, z), Color(0.42, 0.24, 0.15))
-            world_root.add_child(obstacle)
+        _box(world_root, "Gold curb", Vector3(0.22, 0.2, 260.0), Vector3(side * 4.6, -0.08, -105.0), Color(0.72, 0.54, 0.2))
+        for i in range(22):
+            var z := -8.0 - float(i) * 11.0
+            var h := 9.0 + float((i * 7) % 12)
+            var x := side * (9.0 + float(i % 3) * 3.2)
+            _box(world_root, "Soviet city block", Vector3(5.5, h, 7.5), Vector3(x, h * 0.5 - 0.1, z), Color(0.29, 0.32, 0.29))
+            _box(world_root, "Facade band", Vector3(5.56, 0.22, 0.12), Vector3(x, h * 0.68, z - 3.82), Color(0.66, 0.22, 0.13))
+            if i % 4 == 0:
+                _box(world_root, "Monument plinth", Vector3(2.0, 1.0, 2.0), Vector3(side * 6.4, 0.5, z - 2.0), Color(0.42, 0.42, 0.37))
+    for i in range(54):
+        _box(world_root, "Lane dash", Vector3(0.055, 0.025, 2.0), Vector3(0, -0.025, -float(i) * 4.8), Color(0.75, 0.69, 0.48))
 
 func _build_player() -> void:
     player = Node3D.new()
     player.name = "Player"
     add_child(player)
     player_body = MeshInstance3D.new()
-    var mesh := CapsuleMesh.new()
-    mesh.radius = 0.48
-    mesh.height = 1.9
-    player_body.mesh = mesh
-    player_body.position.y = 1.0
-    player_body.material_override = _material(Color(0.72, 0.70, 0.58))
+    var capsule := CapsuleMesh.new()
+    capsule.radius = 0.43
+    capsule.height = 1.8
+    player_body.mesh = capsule
+    player_body.position.y = 0.92
+    player_body.material_override = _material(Color(0.68, 0.69, 0.58))
     player.add_child(player_body)
-    var chest := _box("ChestPlate", Vector3(0.62, 0.48, 0.18), Vector3(0, 1.25, -0.37), Color(0.18, 0.24, 0.20))
-    player.add_child(chest)
-    player.position = Vector3(0, 0, 3)
+    _box(player, "Armored chest", Vector3(0.62, 0.45, 0.2), Vector3(0, 1.18, -0.34), Color(0.16, 0.23, 0.19))
+    _box(player, "Red shoulder marking", Vector3(0.16, 0.18, 0.08), Vector3(0.28, 1.42, -0.42), Color(0.65, 0.13, 0.09))
+    player.position = Vector3(0, 0, PLAYER_Z)
 
 func _build_camera() -> void:
     camera = Camera3D.new()
-    camera.position = Vector3(0, 5.0, 10.5)
-    camera.rotation_degrees = Vector3(-17, 0, 0)
+    camera.position = Vector3(0, 5.2, 10.8)
+    camera.rotation_degrees = Vector3(-18, 0, 0)
     camera.current = true
     add_child(camera)
 
@@ -87,74 +85,150 @@ func _build_ui() -> void:
     var layer := CanvasLayer.new()
     add_child(layer)
     var panel := ColorRect.new()
-    panel.color = Color(0.035, 0.045, 0.04, 0.78)
-    panel.position = Vector2(18, 18)
-    panel.size = Vector2(280, 86)
+    panel.color = Color(0.025, 0.04, 0.035, 0.82)
+    panel.position = Vector2(16, 16)
+    panel.size = Vector2(310, 92)
     layer.add_child(panel)
     score_label = Label.new()
-    score_label.position = Vector2(34, 28)
-    score_label.add_theme_font_size_override("font_size", 30)
-    score_label.add_theme_color_override("font_color", Color(0.95, 0.78, 0.35))
+    score_label.position = Vector2(30, 25)
+    score_label.add_theme_font_size_override("font_size", 28)
+    score_label.add_theme_color_override("font_color", Color(0.98, 0.76, 0.3))
     layer.add_child(score_label)
-    hint_label = Label.new()
-    hint_label.text = "СВАЙПЫ: ← →   ПРЫЖОК: ↑   ПОДКАТ: ↓"
-    hint_label.position = Vector2(18, 1160)
-    hint_label.add_theme_font_size_override("font_size", 17)
-    hint_label.add_theme_color_override("font_color", Color(0.92, 0.88, 0.72))
-    layer.add_child(hint_label)
+    status_label = Label.new()
+    status_label.position = Vector2(20, 1110)
+    status_label.size = Vector2(680, 140)
+    status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    status_label.add_theme_font_size_override("font_size", 19)
+    status_label.add_theme_color_override("font_color", Color(0.94, 0.88, 0.72))
+    status_label.text = "СВАЙП ← →  •  ПРЫЖОК ↑  •  ПОДКАТ ↓"
+    layer.add_child(status_label)
     _update_score()
+
+func _spawn_initial_course() -> void:
+    for i in range(18):
+        _spawn_obstacle_row(-22.0 - float(i) * 13.0)
+
+func _spawn_obstacle_row(z: float) -> void:
+    var chosen_lane := rng.randi_range(-1, 1)
+    var kind := rng.randi_range(0, 4)
+    if kind == 0:
+        _spawn_token_line(chosen_lane, z)
+    elif kind == 1:
+        _spawn_barrier(chosen_lane, z)
+    elif kind == 2:
+        _spawn_token_line(chosen_lane, z)
+        _spawn_barrier(-chosen_lane if chosen_lane != 0 else 1, z - 1.0)
+    elif kind == 3:
+        _spawn_low_barrier(chosen_lane, z)
+    else:
+        _spawn_token_line(chosen_lane, z)
+        _spawn_token_line(chosen_lane, z - 2.5)
+
+func _spawn_token_line(lane_index: int, z: float) -> void:
+    for i in range(3):
+        var token := MeshInstance3D.new()
+        token.name = "Token"
+        var mesh := CylinderMesh.new()
+        mesh.top_radius = 0.36
+        mesh.bottom_radius = 0.36
+        mesh.height = 0.12
+        token.mesh = mesh
+        token.material_override = token_material
+        token.position = Vector3(float(lane_index) * LANE_WIDTH, 1.15, z - float(i) * 2.0)
+        world_root.add_child(token)
+
+func _spawn_barrier(lane_index: int, z: float) -> void:
+    _box(world_root, "Obstacle", Vector3(1.35, 1.35, 1.0), Vector3(float(lane_index) * LANE_WIDTH, 0.62, z), Color(0.42, 0.22, 0.13))
+
+func _spawn_low_barrier(lane_index: int, z: float) -> void:
+    _box(world_root, "LowObstacle", Vector3(1.55, 0.65, 1.0), Vector3(float(lane_index) * LANE_WIDTH, 1.35, z), Color(0.34, 0.37, 0.34))
 
 func _process(delta: float) -> void:
     if game_over:
         return
-    player_z -= FORWARD_SPEED * delta
-    target_x = float(lane) * LANE_WIDTH
-    player.position.x = lerp(player.position.x, target_x, min(delta * 12.0, 1.0))
-    player.position.z = 3.0
+    distance += FORWARD_SPEED * delta
+    score = int(distance)
+    world_root.position.z = distance
+    player.position.x = lerp(player.position.x, float(lane) * LANE_WIDTH, min(delta * 13.0, 1.0))
     if jumping:
-        vertical_velocity -= 22.0 * delta
+        vertical_velocity -= GRAVITY * delta
         player.position.y += vertical_velocity * delta
         if player.position.y <= 0.0:
             player.position.y = 0.0
-            jumping = false
             vertical_velocity = 0.0
+            jumping = false
+            player_body.scale = Vector3.ONE
     if sliding:
         slide_time -= delta
         if slide_time <= 0.0:
             sliding = false
             player_body.scale = Vector3.ONE
-    world_root.position.z = -player_z
-    camera.position.x = lerp(camera.position.x, player.position.x * 0.35, delta * 3.0)
-    distance_accumulator += FORWARD_SPEED * delta
-    score = int(distance_accumulator)
-    _check_pickups_and_obstacles()
+    camera.position.x = lerp(camera.position.x, player.position.x * 0.28, delta * 3.0)
+    spawn_distance += FORWARD_SPEED * delta
+    if spawn_distance >= 13.0:
+        spawn_distance = 0.0
+        _spawn_obstacle_row(-SPAWN_AHEAD)
+    _check_items()
+    _cleanup_items()
     _update_score()
-    if abs(player_z) > TRACK_LENGTH - 20.0:
-        player_z = 0.0
 
-func _check_pickups_and_obstacles() -> void:
+func _check_items() -> void:
     for item in world_root.get_children():
         if not item is MeshInstance3D:
             continue
-        if item.name != "Token" and item.name != "Obstacle":
+        if item.name != "Token" and item.name != "Obstacle" and item.name != "LowObstacle":
             continue
-        var dz := abs(item.global_position.z - player.global_position.z)
-        var dx := abs(item.global_position.x - player.global_position.x)
-        if dz < 1.0 and dx < 0.95:
+        var relative_z := item.position.z + world_root.position.z
+        var dx := abs(item.position.x - player.position.x)
+        if abs(relative_z - PLAYER_Z) < 1.0 and dx < 0.95:
             if item.name == "Token":
                 score += 25
-                distance_accumulator = float(score)
+                distance = float(score)
                 item.queue_free()
-            elif player.position.y < 0.45 and not sliding:
+            elif item.name == "Obstacle" and player.position.y < 0.55 and not sliding:
                 _end_run()
-            elif player.position.y < 0.45 and not jumping:
+                return
+            elif item.name == "LowObstacle" and not sliding:
                 _end_run()
+                return
+
+func _cleanup_items() -> void:
+    for item in world_root.get_children():
+        if item is MeshInstance3D and (item.name == "Token" or item.name == "Obstacle" or item.name == "LowObstacle"):
+            if item.position.z + world_root.position.z > PLAYER_Z + DESPAWN_BEHIND:
+                item.queue_free()
 
 func _end_run() -> void:
     game_over = true
-    hint_label.text = "ЗАБЕГ ОКОНЧЕН  •  ЖЕТОНЫ: %06d" % score
+    status_label.text = "ЗАБЕГ ОКОНЧЕН  •  ЖЕТОНЫ: %06d\nНажми, чтобы начать заново" % score
+
+func _restart() -> void:
+    for item in world_root.get_children():
+        if item.name == "Token" or item.name == "Obstacle" or item.name == "LowObstacle":
+            item.queue_free()
+    lane = 0
+    player.position = Vector3(0, 0, PLAYER_Z)
+    player_body.scale = Vector3.ONE
+    jumping = false
+    sliding = false
+    vertical_velocity = 0.0
+    slide_time = 0.0
+    score = 0
+    distance = 0.0
+    spawn_distance = 0.0
+    world_root.position.z = 0.0
+    game_over = false
+    status_label.text = "СВАЙП ← →  •  ПРЫЖОК ↑  •  ПОДКАТ ↓"
+    _spawn_initial_course()
+    _update_score()
 
 func _input(event: InputEvent) -> void:
+    if game_over:
+        if event is InputEventScreenTouch and event.pressed:
+            _restart()
+        elif event is InputEventKey and event.pressed and event.keycode == KEY_ENTER:
+            _restart()
+        return
     if event is InputEventScreenTouch:
         if event.pressed:
             touch_start = event.position
@@ -176,32 +250,29 @@ func _input(event: InputEvent) -> void:
 
 func _handle_swipe(delta: Vector2) -> void:
     if abs(delta.x) > abs(delta.y):
-        if delta.x > 0:
-            lane = min(lane + 1, 1)
-        else:
-            lane = max(lane - 1, -1)
+        lane = clampi(lane + (1 if delta.x > 0 else -1), -1, 1)
     elif delta.y < 0:
         _jump()
     else:
         _slide()
 
 func _jump() -> void:
-    if not jumping:
+    if not jumping and not sliding:
         jumping = true
-        vertical_velocity = 9.0
+        vertical_velocity = JUMP_VELOCITY
         player_body.scale = Vector3(0.9, 1.08, 0.9)
 
 func _slide() -> void:
     if not jumping:
         sliding = true
-        slide_time = 0.75
-        player_body.scale = Vector3(1.15, 0.48, 1.0)
+        slide_time = 0.8
+        player_body.scale = Vector3(1.12, 0.48, 1.0)
 
 func _update_score() -> void:
     if is_instance_valid(score_label):
         score_label.text = "ЖЕТОНЫ  ₽  %06d" % score
 
-func _box(label: String, size: Vector3, pos: Vector3, color: Color) -> MeshInstance3D:
+func _box(parent: Node, label: String, size: Vector3, pos: Vector3, color: Color) -> MeshInstance3D:
     var node := MeshInstance3D.new()
     node.name = label
     var mesh := BoxMesh.new()
@@ -209,22 +280,15 @@ func _box(label: String, size: Vector3, pos: Vector3, color: Color) -> MeshInsta
     node.mesh = mesh
     node.position = pos
     node.material_override = _material(color)
+    parent.add_child(node)
     return node
 
-func _cylinder(label: String, radius: float, height: float, pos: Vector3, color: Color) -> MeshInstance3D:
-    var node := MeshInstance3D.new()
-    node.name = label
-    var mesh := CylinderMesh.new()
-    mesh.top_radius = radius
-    mesh.bottom_radius = radius
-    mesh.height = height
-    node.mesh = mesh
-    node.position = pos
-    node.material_override = _material(color)
-    return node
-
-func _material(color: Color) -> StandardMaterial3D:
+func _material(color: Color, glow: bool = false) -> StandardMaterial3D:
     var mat := StandardMaterial3D.new()
     mat.albedo_color = color
-    mat.roughness = 0.82
+    mat.roughness = 0.78
+    if glow:
+        mat.emission_enabled = true
+        mat.emission = color
+        mat.emission_energy_multiplier = 0.7
     return mat
