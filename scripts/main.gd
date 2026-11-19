@@ -20,6 +20,8 @@ var tokens := 0
 var distance := 0.0
 var game_over := false
 var paused := false
+var menu_open := false
+var menu_layer: CanvasLayer
 var pause_label: Label
 var touch_start := Vector2.ZERO
 var touch_active := false
@@ -48,6 +50,7 @@ func _ready() -> void:
     _build_camera()
     _build_ui()
     _spawn_initial_course()
+    _build_menu()
     spawn_distance = 0.0
 
 func _build_world() -> void:
@@ -231,6 +234,88 @@ func _build_ui() -> void:
     layer.add_child(pause_label)
     _update_score()
 
+func _build_menu() -> void:
+    menu_open = true
+    paused = true
+    menu_layer = CanvasLayer.new()
+    menu_layer.layer = 10
+    add_child(menu_layer)
+    var shade := ColorRect.new()
+    shade.anchor_right = 1.0
+    shade.anchor_bottom = 1.0
+    shade.color = Color(0.012, 0.025, 0.026, 0.88)
+    menu_layer.add_child(shade)
+    var top_line := ColorRect.new()
+    top_line.position = Vector2(76, 292)
+    top_line.size = Vector2(568, 3)
+    top_line.color = Color(0.78, 0.34, 0.13)
+    menu_layer.add_child(top_line)
+    var title := Label.new()
+    title.position = Vector2(42, 330)
+    title.size = Vector2(636, 100)
+    title.text = "ATOMIC RUNNER"
+    title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    title.add_theme_font_size_override("font_size", 54)
+    title.add_theme_color_override("font_color", Color(0.94, 0.77, 0.49))
+    menu_layer.add_child(title)
+    var subtitle := Label.new()
+    subtitle.position = Vector2(60, 430)
+    subtitle.size = Vector2(600, 60)
+    subtitle.text = "ПРОТОКОЛ «БЕСКОНЕЧНЫЙ МАРШРУТ»"
+    subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    subtitle.add_theme_font_size_override("font_size", 19)
+    subtitle.add_theme_color_override("font_color", Color(0.72, 0.65, 0.5))
+    menu_layer.add_child(subtitle)
+    var divider := ColorRect.new()
+    divider.position = Vector2(170, 520)
+    divider.size = Vector2(380, 2)
+    divider.color = Color(0.48, 0.31, 0.19, 0.9)
+    menu_layer.add_child(divider)
+    var description := Label.new()
+    description.position = Vector2(90, 555)
+    description.size = Vector2(540, 110)
+    description.text = "ПРОБЕГИ ЧЕРЕЗ ГОРОД\nСОБИРАЙ ЖЕТОНЫ  •  ИЗБЕГАЙ ПРЕПЯТСТВИЙ"
+    description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    description.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+    description.add_theme_font_size_override("font_size", 18)
+    description.add_theme_color_override("font_color", Color(0.82, 0.81, 0.72))
+    menu_layer.add_child(description)
+    var start_button := Button.new()
+    start_button.position = Vector2(115, 730)
+    start_button.size = Vector2(490, 88)
+    start_button.text = "НАЧАТЬ ЗАБЕГ"
+    start_button.add_theme_font_size_override("font_size", 27)
+    start_button.add_theme_color_override("font_color", Color(0.98, 0.9, 0.72))
+    var normal := StyleBoxFlat.new()
+    normal.bg_color = Color(0.42, 0.13, 0.075, 0.98)
+    normal.border_color = Color(0.91, 0.54, 0.25)
+    normal.set_border_width_all(2)
+    normal.set_corner_radius_all(5)
+    start_button.add_theme_stylebox_override("normal", normal)
+    var hover := StyleBoxFlat.new()
+    hover.bg_color = Color(0.58, 0.2, 0.09, 1.0)
+    hover.border_color = Color(1.0, 0.72, 0.36)
+    hover.set_border_width_all(2)
+    hover.set_corner_radius_all(5)
+    start_button.add_theme_stylebox_override("hover", hover)
+    start_button.pressed.connect(_start_run)
+    menu_layer.add_child(start_button)
+    var footer := Label.new()
+    footer.position = Vector2(70, 930)
+    footer.size = Vector2(580, 60)
+    footer.text = "СОВЕТСКИЙ РЕТРОФУТУРИЗМ  •  1955"
+    footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    footer.add_theme_font_size_override("font_size", 15)
+    footer.add_theme_color_override("font_color", Color(0.52, 0.49, 0.4))
+    menu_layer.add_child(footer)
+
+func _start_run() -> void:
+    if is_instance_valid(menu_layer):
+        menu_layer.queue_free()
+    menu_open = false
+    paused = false
+    status_label.text = "СВАЙП ← →  •  ПРЫЖОК ↑  •  ПОДКАТ ↓"
+
 func _spawn_initial_course() -> void:
     for i in range(18):
         _spawn_obstacle_row(-22.0 - float(i) * 13.0)
@@ -377,6 +462,8 @@ func _restart() -> void:
     _update_score()
 
 func _input(event: InputEvent) -> void:
+    if menu_open:
+        return
     if event is InputEventScreenTouch and event.pressed and event.position.x > 590.0 and event.position.y < 100.0 and not game_over:
         _toggle_pause()
         return
