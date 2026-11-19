@@ -32,6 +32,10 @@ var status_label: Label
 var world_root: Node3D
 var token_material: StandardMaterial3D
 var obstacle_material: StandardMaterial3D
+var arm_left: MeshInstance3D
+var arm_right: MeshInstance3D
+var leg_left: MeshInstance3D
+var leg_right: MeshInstance3D
 
 func _ready() -> void:
     rng.randomize()
@@ -67,14 +71,29 @@ func _build_player() -> void:
     add_child(player)
     player_body = MeshInstance3D.new()
     var capsule := CapsuleMesh.new()
-    capsule.radius = 0.43
-    capsule.height = 1.8
+    capsule.radius = 0.36
+    capsule.height = 1.42
     player_body.mesh = capsule
-    player_body.position.y = 0.92
+    player_body.position.y = 1.05
     player_body.material_override = _material(Color(0.68, 0.69, 0.58))
     player.add_child(player_body)
-    _box(player, "Armored chest", Vector3(0.62, 0.45, 0.2), Vector3(0, 1.18, -0.34), Color(0.16, 0.23, 0.19))
-    _box(player, "Red shoulder marking", Vector3(0.16, 0.18, 0.08), Vector3(0.28, 1.42, -0.42), Color(0.65, 0.13, 0.09))
+    var head := MeshInstance3D.new()
+    var head_mesh := SphereMesh.new()
+    head_mesh.radius = 0.29
+    head_mesh.height = 0.58
+    head.mesh = head_mesh
+    head.position = Vector3(0, 1.98, 0)
+    head.material_override = _material(Color(0.72, 0.7, 0.58))
+    player.add_child(head)
+    _box(player, "Helmet", Vector3(0.62, 0.16, 0.62), Vector3(0, 2.22, 0), Color(0.22, 0.29, 0.24))
+    _box(player, "Armored chest", Vector3(0.62, 0.48, 0.2), Vector3(0, 1.25, -0.34), Color(0.16, 0.23, 0.19))
+    _box(player, "Chest insignia", Vector3(0.22, 0.12, 0.07), Vector3(0, 1.38, -0.46), Color(0.72, 0.16, 0.1))
+    _box(player, "Red shoulder marking", Vector3(0.16, 0.18, 0.08), Vector3(0.28, 1.48, -0.42), Color(0.65, 0.13, 0.09))
+    arm_left = _box(player, "Left arm", Vector3(0.22, 0.72, 0.24), Vector3(-0.49, 1.16, 0), Color(0.57, 0.59, 0.5))
+    arm_right = _box(player, "Right arm", Vector3(0.22, 0.72, 0.24), Vector3(0.49, 1.16, 0), Color(0.57, 0.59, 0.5))
+    leg_left = _box(player, "Left leg", Vector3(0.27, 0.72, 0.31), Vector3(-0.19, 0.38, 0.02), Color(0.23, 0.29, 0.25))
+    leg_right = _box(player, "Right leg", Vector3(0.27, 0.72, 0.31), Vector3(0.19, 0.38, 0.02), Color(0.23, 0.29, 0.25))
+    _box(player, "Backpack", Vector3(0.52, 0.62, 0.28), Vector3(0, 1.2, 0.34), Color(0.19, 0.25, 0.21))
     player.position = Vector3(0, 0, PLAYER_Z)
 
 func _build_camera() -> void:
@@ -167,6 +186,17 @@ func _process(delta: float) -> void:
             sliding = false
             player_body.scale = Vector3.ONE
     camera.position.x = lerp(camera.position.x, player.position.x * 0.28, delta * 3.0)
+    if not jumping and not sliding:
+        var run_swing := sin(distance * 0.72) * 0.42
+        arm_left.rotation.x = run_swing
+        arm_right.rotation.x = -run_swing
+        leg_left.rotation.x = -run_swing * 0.8
+        leg_right.rotation.x = run_swing * 0.8
+    else:
+        arm_left.rotation.x = 0.0
+        arm_right.rotation.x = 0.0
+        leg_left.rotation.x = 0.0
+        leg_right.rotation.x = 0.0
     spawn_distance += FORWARD_SPEED * delta
     if spawn_distance >= 13.0:
         spawn_distance = 0.0
