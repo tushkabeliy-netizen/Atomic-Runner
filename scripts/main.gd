@@ -48,6 +48,20 @@ func _ready() -> void:
     _spawn_initial_course()
 
 func _build_world() -> void:
+    var environment_node := WorldEnvironment.new()
+    var environment := Environment.new()
+    environment.background_mode = Environment.BG_COLOR
+    environment.background_color = Color(0.24, 0.32, 0.38)
+    environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+    environment.ambient_light_color = Color(0.62, 0.65, 0.62)
+    environment.ambient_light_energy = 0.72
+    environment_node.environment = environment
+    add_child(environment_node)
+    var sun := DirectionalLight3D.new()
+    sun.rotation_degrees = Vector3(-48, -28, 0)
+    sun.light_energy = 1.35
+    sun.shadow_enabled = true
+    add_child(sun)
     world_root = Node3D.new()
     world_root.name = "World"
     add_child(world_root)
@@ -62,6 +76,9 @@ func _build_world() -> void:
             _box(world_root, "Facade band", Vector3(5.56, 0.22, 0.12), Vector3(x, h * 0.68, z - 3.82), Color(0.66, 0.22, 0.13))
             if i % 4 == 0:
                 _box(world_root, "Monument plinth", Vector3(2.0, 1.0, 2.0), Vector3(side * 6.4, 0.5, z - 2.0), Color(0.42, 0.42, 0.37))
+            if i % 2 == 0:
+                _box(world_root, "Street lamp", Vector3(0.12, 4.8, 0.12), Vector3(side * 5.25, 2.4, z - 3.0), Color(0.2, 0.24, 0.22))
+                _box(world_root, "Street lamp head", Vector3(0.72, 0.16, 0.32), Vector3(side * 5.25, 4.82, z - 3.0), Color(0.85, 0.72, 0.43))
     for i in range(2000):
         _box(world_root, "Lane dash", Vector3(0.055, 0.025, 2.0), Vector3(0, -0.025, -float(i) * 4.8), Color(0.75, 0.69, 0.48))
 
@@ -217,7 +234,7 @@ func _recycle_scenery() -> void:
         elif item.name == "Lane dash":
             if world_z > SCENERY_RECYCLE_DISTANCE:
                 item.position.z -= 9600.0
-        elif item.name == "Soviet city block" or item.name == "Facade band" or item.name == "Monument plinth":
+        elif item.name == "Soviet city block" or item.name == "Facade band" or item.name == "Monument plinth" or item.name == "Street lamp" or item.name == "Street lamp head":
             if world_z > SCENERY_RECYCLE_DISTANCE:
                 item.position.z -= SCENERY_RECYCLE_LENGTH
 
