@@ -46,6 +46,7 @@ func _ready() -> void:
     _build_camera()
     _build_ui()
     _spawn_initial_course()
+    spawn_distance = 243.0
 
 func _build_world() -> void:
     var environment_node := WorldEnvironment.new()
@@ -282,7 +283,7 @@ func _restart() -> void:
     score = 0
     tokens = 0
     distance = 0.0
-    spawn_distance = 0.0
+    spawn_distance = 243.0
     world_root.position.z = 0.0
     game_over = false
     status_label.text = "СВАЙП ← →  •  ПРЫЖОК ↑  •  ПОДКАТ ↓"
