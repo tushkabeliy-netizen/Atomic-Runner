@@ -12,6 +12,9 @@ on:
       - 'export_presets.cfg'
       - '.github/workflows/android-apk.yml'
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -21,6 +24,13 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
+      - name: Verify project files
+        run: |
+          test -f project.godot
+          test -f scenes/Main.tscn
+          test -f scripts/main.gd
+          godot --version
+
       - name: Import project resources
         run: godot --headless --editor --path . --quit
 
@@ -28,6 +38,7 @@ jobs:
         run: |
           mkdir -p build
           godot --headless --path . --export-debug "Android" build/AtomicRunner-debug.apk
+          test -s build/AtomicRunner-debug.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -35,3 +46,4 @@ jobs:
           name: AtomicRunner-debug-apk
           path: build/AtomicRunner-debug.apk
           if-no-files-found: error
+          retention-days: 14
