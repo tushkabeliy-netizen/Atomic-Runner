@@ -17,28 +17,41 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container:
-      image: barichello/godot-ci:4.3.0
+      # The published Godot CI image uses 4.3, not 4.3.0.
+      image: barichello/godot-ci:4.3
+    env:
+      GODOT_VERSION: "4.3"
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+        with:
+          lfs: true
 
-      - name: Verify project files
+      - name: Prepare Godot export templates and Android settings
         run: |
-          test -f project.godot
-          test -f scenes/Main.tscn
-          test -f scripts/main.gd
+          mkdir -p "$HOME/.local/share/godot/export_templates" "$HOME/.config"
+          if [ -d /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ]; then
+            cp -a /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable "$HOME/.local/share/godot/export_templates/"
+          fi
+          if [ -d /root/.config/godot ]; then
+            cp -a /root/.config/godot "$HOME/.config/"
+          fi
           godot --version
+          test -d "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
 
-      - name: Import project resources
-        run: godot --headless --editor --path . --quit
+      - name: Import project and install Android build template
+        run: |
+          godot --headless --editor --path . --quit
+          godot --headless --editor --path . --install-android-build-template --quit
 
-      - name: Export Android APK
+      - name: Export Android debug APK
         run: |
           mkdir -p build
-          godot --headless --path . --export-debug "Android" build/AtomicRunner-debug.apk
+          godot --headless --verbose --path . --export-debug "Android" build/AtomicRunner-debug.apk
           test -s build/AtomicRunner-debug.apk
+          file build/AtomicRunner-debug.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -46,4 +59,4 @@ jobs:
           name: AtomicRunner-debug-apk
           path: build/AtomicRunner-debug.apk
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
