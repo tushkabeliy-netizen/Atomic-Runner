@@ -171,15 +171,26 @@ func _build_player() -> void:
     head.position = Vector3(0, 1.98, 0)
     head.material_override = _material(Color(0.72, 0.7, 0.58))
     player.add_child(head)
-    _box(player, "Helmet", Vector3(0.62, 0.16, 0.62), Vector3(0, 2.22, 0), Color(0.22, 0.29, 0.24))
-    _box(player, "Armored chest", Vector3(0.62, 0.48, 0.2), Vector3(0, 1.25, -0.34), Color(0.16, 0.23, 0.19))
-    _box(player, "Chest insignia", Vector3(0.22, 0.12, 0.07), Vector3(0, 1.38, -0.46), Color(0.72, 0.16, 0.1))
-    _box(player, "Red shoulder marking", Vector3(0.16, 0.18, 0.08), Vector3(0.28, 1.48, -0.42), Color(0.65, 0.13, 0.09))
-    arm_left = _box(player, "Left arm", Vector3(0.22, 0.72, 0.24), Vector3(-0.49, 1.16, 0), Color(0.57, 0.59, 0.5))
-    arm_right = _box(player, "Right arm", Vector3(0.22, 0.72, 0.24), Vector3(0.49, 1.16, 0), Color(0.57, 0.59, 0.5))
-    leg_left = _box(player, "Left leg", Vector3(0.27, 0.72, 0.31), Vector3(-0.19, 0.38, 0.02), Color(0.23, 0.29, 0.25))
-    leg_right = _box(player, "Right leg", Vector3(0.27, 0.72, 0.31), Vector3(0.19, 0.38, 0.02), Color(0.23, 0.29, 0.25))
+    _sphere_part(player, "Helmet shell", Vector3(0.35, 0.27, 0.35), Vector3(0, 2.22, 0.01), Color(0.19, 0.27, 0.23))
+    _sphere_part(player, "Helmet brow", Vector3(0.34, 0.07, 0.31), Vector3(0, 2.12, -0.08), Color(0.42, 0.39, 0.28))
+    _sphere_part(player, "Helmet visor", Vector3(0.22, 0.105, 0.075), Vector3(0, 2.03, -0.265), Color(0.07, 0.19, 0.22))
+    _sphere_part(player, "Armored chest", Vector3(0.43, 0.43, 0.17), Vector3(0, 1.31, -0.31), Color(0.15, 0.23, 0.19))
+    _sphere_part(player, "Chest insignia", Vector3(0.13, 0.13, 0.045), Vector3(0, 1.42, -0.47), Color(0.78, 0.18, 0.1))
+    _sphere_part(player, "Left shoulder armor", Vector3(0.24, 0.23, 0.25), Vector3(-0.48, 1.48, -0.01), Color(0.25, 0.31, 0.26))
+    _sphere_part(player, "Right shoulder armor", Vector3(0.24, 0.23, 0.25), Vector3(0.48, 1.48, -0.01), Color(0.25, 0.31, 0.26))
+    arm_left = _capsule_part(player, "Left arm", 0.145, 0.82, Vector3(-0.5, 1.12, 0.0), Color(0.48, 0.53, 0.45))
+    arm_right = _capsule_part(player, "Right arm", 0.145, 0.82, Vector3(0.5, 1.12, 0.0), Color(0.48, 0.53, 0.45))
+    _sphere_part(player, "Left glove", Vector3(0.15, 0.15, 0.15), Vector3(-0.5, 0.66, -0.015), Color(0.12, 0.16, 0.14))
+    _sphere_part(player, "Right glove", Vector3(0.15, 0.15, 0.15), Vector3(0.5, 0.66, -0.015), Color(0.12, 0.16, 0.14))
+    leg_left = _capsule_part(player, "Left leg", 0.17, 0.82, Vector3(-0.19, 0.39, 0.02), Color(0.21, 0.28, 0.24))
+    leg_right = _capsule_part(player, "Right leg", 0.17, 0.82, Vector3(0.19, 0.39, 0.02), Color(0.21, 0.28, 0.24))
+    _sphere_part(player, "Left knee plate", Vector3(0.16, 0.14, 0.09), Vector3(-0.19, 0.48, -0.16), Color(0.46, 0.42, 0.31))
+    _sphere_part(player, "Right knee plate", Vector3(0.16, 0.14, 0.09), Vector3(0.19, 0.48, -0.16), Color(0.46, 0.42, 0.31))
+    _box(player, "Left boot", Vector3(0.31, 0.18, 0.48), Vector3(-0.19, 0.09, -0.09), Color(0.12, 0.15, 0.13))
+    _box(player, "Right boot", Vector3(0.31, 0.18, 0.48), Vector3(0.19, 0.09, -0.09), Color(0.12, 0.15, 0.13))
     _box(player, "Backpack", Vector3(0.52, 0.62, 0.28), Vector3(0, 1.2, 0.34), Color(0.19, 0.25, 0.21))
+    _box(player, "Backpack canister", Vector3(0.16, 0.48, 0.17), Vector3(0.31, 1.2, 0.38), Color(0.48, 0.35, 0.18))
+    _box(player, "Utility belt", Vector3(0.62, 0.12, 0.3), Vector3(0, 0.82, -0.015), Color(0.12, 0.16, 0.14))
     player.position = Vector3(0, 0, PLAYER_Z)
 
 func _build_camera() -> void:
@@ -429,6 +440,31 @@ func _slide() -> void:
 func _update_score() -> void:
     if is_instance_valid(score_label):
         score_label.text = "ЖЕТОНЫ  ₽  %06d" % score
+
+func _sphere_part(parent: Node, label: String, dimensions: Vector3, pos: Vector3, color: Color) -> MeshInstance3D:
+    var node := MeshInstance3D.new()
+    node.name = label
+    var mesh := SphereMesh.new()
+    mesh.radius = 1.0
+    mesh.height = 2.0
+    node.mesh = mesh
+    node.scale = dimensions
+    node.position = pos
+    node.material_override = _material(color)
+    parent.add_child(node)
+    return node
+
+func _capsule_part(parent: Node, label: String, radius: float, height: float, pos: Vector3, color: Color) -> MeshInstance3D:
+    var node := MeshInstance3D.new()
+    node.name = label
+    var mesh := CapsuleMesh.new()
+    mesh.radius = radius
+    mesh.height = height
+    node.mesh = mesh
+    node.position = pos
+    node.material_override = _material(color)
+    parent.add_child(node)
+    return node
 
 func _box(parent: Node, label: String, size: Vector3, pos: Vector3, color: Color) -> MeshInstance3D:
     var node := MeshInstance3D.new()
