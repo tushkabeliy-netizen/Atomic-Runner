@@ -53,11 +53,25 @@ func _ready() -> void:
 func _build_world() -> void:
     var environment_node := WorldEnvironment.new()
     var environment := Environment.new()
-    environment.background_mode = Environment.BG_COLOR
-    environment.background_color = Color(0.24, 0.32, 0.38)
-    environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-    environment.ambient_light_color = Color(0.62, 0.65, 0.62)
-    environment.ambient_light_energy = 0.72
+    environment.background_mode = Environment.BG_SKY
+    var sky := Sky.new()
+    var sky_material := ProceduralSkyMaterial.new()
+    sky_material.sky_top_color = Color(0.025, 0.075, 0.11)
+    sky_material.sky_horizon_color = Color(0.92, 0.43, 0.22)
+    sky_material.ground_bottom_color = Color(0.055, 0.075, 0.08)
+    sky_material.ground_horizon_color = Color(0.28, 0.19, 0.15)
+    sky.sky_material = sky_material
+    environment.sky = sky
+    environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+    environment.ambient_light_energy = 0.82
+    environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
+    environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+    environment.glow_enabled = true
+    environment.glow_intensity = 0.55
+    environment.glow_strength = 0.7
+    environment.fog_enabled = true
+    environment.fog_light_color = Color(0.58, 0.32, 0.22)
+    environment.fog_density = 0.006
     environment_node.environment = environment
     add_child(environment_node)
     var sun := DirectionalLight3D.new()
@@ -84,6 +98,58 @@ func _build_world() -> void:
                 _box(world_root, "Street lamp head", Vector3(0.72, 0.16, 0.32), Vector3(side * 5.25, 4.82, z - 3.0), Color(0.85, 0.72, 0.43))
     for i in range(2000):
         _box(world_root, "Lane dash", Vector3(0.055, 0.025, 2.0), Vector3(0, -0.025, -float(i) * 4.8), Color(0.75, 0.69, 0.48))
+    _build_city_detail()
+
+func _build_city_detail() -> void:
+    # Add visible facade detail to the camera-facing sides of every avenue block.
+    var glass_dark := Color(0.035, 0.095, 0.12)
+    var glass_lit := Color(0.95, 0.57, 0.25)
+    var concrete := Color(0.56, 0.48, 0.36)
+    var red := Color(0.66, 0.13, 0.075)
+    for side in [-1, 1]:
+        for i in range(30):
+            var z := -8.0 - float(i) * 11.0
+            var h := 9.0 + float((i * 7) % 12)
+            var x: float = float(side) * (9.0 + float(i % 3) * 3.2)
+            var front := z + 3.83
+            _box(world_root, "Facade cornice", Vector3(5.72, 0.32, 0.24), Vector3(x, h - 0.18, front), concrete)
+            _box(world_root, "Facade plinth", Vector3(5.65, 0.48, 0.22), Vector3(x, 0.38, front), Color(0.25, 0.24, 0.2))
+            for edge in [-1, 1]:
+                _box(world_root, "Facade pilaster", Vector3(0.18, h - 0.9, 0.18), Vector3(x + float(edge) * 2.58, h * 0.5, front + 0.08), concrete)
+            var rows := int((h - 2.6) / 2.25)
+            for row in range(rows):
+                var wy := 1.75 + float(row) * 2.25
+                for col in range(3):
+                    var wx := x + float(col - 1) * 1.68
+                    var pane_color := glass_lit if ((i * 13 + row * 7 + col * 3) % 6 == 0) else glass_dark
+                    _box(world_root, "Window frame", Vector3(0.91, 1.38, 0.13), Vector3(wx, wy, front + 0.11), Color(0.17, 0.19, 0.17))
+                    _box(world_root, "Window glass", Vector3(0.69, 1.12, 0.055), Vector3(wx, wy + 0.015, front + 0.19), pane_color)
+                    _box(world_root, "Window sill", Vector3(1.02, 0.12, 0.25), Vector3(wx, wy - 0.72, front + 0.2), concrete)
+                    _box(world_root, "Window mullion", Vector3(0.055, 1.12, 0.07), Vector3(wx, wy, front + 0.235), concrete)
+            if i % 5 == 0:
+                _box(world_root, "Art deco sign", Vector3(2.25, 0.62, 0.18), Vector3(x, 2.0, front + 0.32), red)
+                _box(world_root, "Sign lettering", Vector3(1.62, 0.075, 0.08), Vector3(x, 2.0, front + 0.44), Color(1.0, 0.75, 0.38))
+                _box(world_root, "Entrance canopy", Vector3(2.8, 0.16, 1.15), Vector3(x, 3.0, front + 0.55), Color(0.16, 0.2, 0.18))
+                for post_x in [-1.1, 1.1]:
+                    _box(world_root, "Entrance column", Vector3(0.18, 2.45, 0.18), Vector3(x + post_x, 1.55, front + 0.92), concrete)
+        # A layered skyline creates depth and a visible horizon behind the avenue.
+        for i in range(18):
+            var far_x: float = float(side) * (27.0 + float(i % 4) * 5.5)
+            var far_h := 13.0 + float((i * 11) % 25)
+            var far_z := -18.0 - float(i) * 18.0
+            _box(world_root, "Distant skyline", Vector3(8.0 + float(i % 3) * 2.0, far_h, 10.0), Vector3(far_x, far_h * 0.5, far_z), Color(0.17, 0.22, 0.22))
+            _box(world_root, "Distant rooftop", Vector3(8.2 + float(i % 3) * 2.0, 0.28, 10.2), Vector3(far_x, far_h + 0.14, far_z), Color(0.3, 0.26, 0.2))
+    # A boulevard rhythm of lanterns, benches and warm pools of light.
+    for i in range(24):
+        var z := -12.0 - float(i) * 14.0
+        var side := -1 if i % 2 == 0 else 1
+        var x := float(side) * 5.45
+        _box(world_root, "Lantern post", Vector3(0.13, 5.3, 0.13), Vector3(x, 2.65, z), Color(0.12, 0.17, 0.16))
+        _box(world_root, "Lantern housing", Vector3(0.78, 0.52, 0.78), Vector3(x, 5.2, z), Color(0.95, 0.61, 0.27))
+        _box(world_root, "Lantern cap", Vector3(1.02, 0.13, 1.02), Vector3(x, 5.53, z), Color(0.18, 0.22, 0.19))
+        _box(world_root, "Boulevard bench", Vector3(1.65, 0.16, 0.48), Vector3(float(side) * 6.25, 0.58, z - 2.5), Color(0.32, 0.18, 0.11))
+        _box(world_root, "Bench leg", Vector3(0.12, 0.52, 0.12), Vector3(float(side) * 5.7, 0.28, z - 2.5), Color(0.16, 0.19, 0.17))
+        _box(world_root, "Bench leg", Vector3(0.12, 0.52, 0.12), Vector3(float(side) * 6.8, 0.28, z - 2.5), Color(0.16, 0.19, 0.17))
 
 func _build_player() -> void:
     player = Node3D.new()
