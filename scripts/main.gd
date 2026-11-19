@@ -14,6 +14,7 @@ var jumping := false
 var sliding := false
 var slide_time := 0.0
 var score := 0
+var tokens := 0
 var distance := 0.0
 var game_over := false
 var touch_start := Vector2.ZERO
@@ -147,7 +148,7 @@ func _process(delta: float) -> void:
     if game_over:
         return
     distance += FORWARD_SPEED * delta
-    score = int(distance)
+    score = int(distance) + tokens * 25
     world_root.position.z = distance
     player.position.x = lerp(player.position.x, float(lane) * LANE_WIDTH, min(delta * 13.0, 1.0))
     if jumping:
@@ -182,8 +183,8 @@ func _check_items() -> void:
         var dx := abs(item.position.x - player.position.x)
         if abs(relative_z - PLAYER_Z) < 1.0 and dx < 0.95:
             if item.name == "Token":
-                score += 25
-                distance = float(score)
+                tokens += 1
+                score = int(distance) + tokens * 25
                 item.queue_free()
             elif item.name == "Obstacle" and player.position.y < 0.55 and not sliding:
                 _end_run()
@@ -214,6 +215,7 @@ func _restart() -> void:
     vertical_velocity = 0.0
     slide_time = 0.0
     score = 0
+    tokens = 0
     distance = 0.0
     spawn_distance = 0.0
     world_root.position.z = 0.0
