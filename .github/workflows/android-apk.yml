@@ -31,17 +31,34 @@ jobs:
 
       - name: Prepare Godot export templates and Android settings
         run: |
-          mkdir -p "$HOME/.local/share/godot/export_templates" "$HOME/.config"
+          mkdir -p "$HOME/.local/share/godot/export_templates" "$HOME/.config/godot"
           if [ "$HOME" != "/root" ]; then
             if [ -d /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ]; then
               cp -a /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable "$HOME/.local/share/godot/export_templates/"
             fi
             if [ -d /root/.config/godot ]; then
-              cp -a /root/.config/godot "$HOME/.config/"
+              cp -a /root/.config/godot/. "$HOME/.config/godot/"
             fi
           fi
+          # Recreate the Android editor settings explicitly: GitHub Actions may
+          # override HOME, while the CI image stores its SDK and debug key under /root.
+          cat > "$HOME/.config/godot/editor_settings-4.3.tres" <<'EOF'
+          [gd_resource type="EditorSettings" format=3]
+          [resource]
+          export/android/java_sdk_path = "/usr/lib/jvm/java-17-openjdk-amd64"
+          export/android/android_sdk_path = "/usr/lib/android-sdk"
+          export/android/debug_keystore = "/root/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          export/android/force_system_user = false
+          export/android/timestamping_authority_url = ""
+          EOF
           godot --version
           test -d "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          test -s /root/debug.keystore
+          test -d /usr/lib/android-sdk/platform-tools
+          test -d /usr/lib/jvm/java-17-openjdk-amd64
+          ls -la "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
 
       - name: Import project
         run: godot --headless --editor --path . --quit
