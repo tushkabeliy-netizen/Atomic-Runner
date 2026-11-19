@@ -34,6 +34,9 @@ var camera: Camera3D
 var score_label: Label
 var status_label: Label
 var world_root: Node3D
+var road_chunks: Array[Node3D] = []
+const CHUNK_LENGTH := 80.0
+const CHUNK_COUNT := 12
 var token_material: StandardMaterial3D
 var obstacle_material: StandardMaterial3D
 var arm_left: MeshInstance3D
@@ -59,100 +62,79 @@ func _build_world() -> void:
     environment.background_mode = Environment.BG_SKY
     var sky := Sky.new()
     var sky_material := ProceduralSkyMaterial.new()
-    sky_material.sky_top_color = Color(0.025, 0.075, 0.11)
-    sky_material.sky_horizon_color = Color(0.92, 0.43, 0.22)
-    sky_material.ground_bottom_color = Color(0.055, 0.075, 0.08)
-    sky_material.ground_horizon_color = Color(0.28, 0.19, 0.15)
+    sky_material.sky_top_color = Color(0.018, 0.055, 0.075)
+    sky_material.sky_horizon_color = Color(0.78, 0.34, 0.19)
+    sky_material.ground_bottom_color = Color(0.035, 0.045, 0.045)
+    sky_material.ground_horizon_color = Color(0.24, 0.15, 0.12)
     sky.sky_material = sky_material
     environment.sky = sky
     environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-    environment.ambient_light_energy = 0.82
-    environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
+    environment.ambient_light_energy = 0.9
     environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
     environment.glow_enabled = true
-    environment.glow_intensity = 0.55
-    environment.glow_strength = 0.7
+    environment.glow_intensity = 0.48
+    environment.glow_strength = 0.65
     environment.fog_enabled = true
-    environment.fog_light_color = Color(0.58, 0.32, 0.22)
-    environment.fog_density = 0.006
+    environment.fog_light_color = Color(0.52, 0.29, 0.2)
+    environment.fog_density = 0.004
     environment_node.environment = environment
     add_child(environment_node)
     var sun := DirectionalLight3D.new()
-    sun.rotation_degrees = Vector3(-48, -28, 0)
-    sun.light_energy = 1.35
+    sun.rotation_degrees = Vector3(-42, -28, 0)
+    sun.light_energy = 1.4
     sun.shadow_enabled = true
     add_child(sun)
     world_root = Node3D.new()
     world_root.name = "World"
     add_child(world_root)
-    _box(world_root, "Road", Vector3(9.0, 0.35, 1000000.0), Vector3(0, -0.22, -499900.0), Color(0.13, 0.15, 0.14))
+    for i in range(CHUNK_COUNT):
+        var chunk := _build_road_chunk(i)
+        chunk.position.z = -float(i) * CHUNK_LENGTH
+        world_root.add_child(chunk)
+        road_chunks.append(chunk)
+
+func _build_road_chunk(index: int) -> Node3D:
+    var chunk := Node3D.new()
+    chunk.name = "RoadChunk"
+    var road_mat := _material(Color(0.105, 0.125, 0.12))
+    var curb_mat := _material(Color(0.68, 0.43, 0.19))
+    var concrete := Color(0.34, 0.34, 0.29)
+    var glass := Color(0.035, 0.105, 0.12)
+    var lit_glass := Color(0.92, 0.49, 0.22)
+    _box(chunk, "Road surface", Vector3(9.0, 0.36, CHUNK_LENGTH + 0.2), Vector3(0, -0.22, -CHUNK_LENGTH * 0.5), Color(0.105, 0.125, 0.12))
     for side in [-1, 1]:
-        _box(world_root, "Gold curb", Vector3(0.22, 0.2, 1000000.0), Vector3(side * 4.6, -0.08, -499900.0), Color(0.72, 0.54, 0.2))
-        for i in range(30):
-            var z := -8.0 - float(i) * 11.0
-            var h := 9.0 + float((i * 7) % 12)
-            var x: float = float(side) * (9.0 + float(i % 3) * 3.2)
-            _box(world_root, "Soviet city block", Vector3(5.5, h, 7.5), Vector3(x, h * 0.5 - 0.1, z), Color(0.29, 0.32, 0.29))
-            _box(world_root, "Facade band", Vector3(5.56, 0.22, 0.12), Vector3(x, h * 0.68, z - 3.82), Color(0.66, 0.22, 0.13))
-            if i % 4 == 0:
-                _box(world_root, "Monument plinth", Vector3(2.0, 1.0, 2.0), Vector3(side * 6.4, 0.5, z - 2.0), Color(0.42, 0.42, 0.37))
-            if i % 2 == 0:
-                _box(world_root, "Street lamp", Vector3(0.12, 4.8, 0.12), Vector3(side * 5.25, 2.4, z - 3.0), Color(0.2, 0.24, 0.22))
-                _box(world_root, "Street lamp head", Vector3(0.72, 0.16, 0.32), Vector3(side * 5.25, 4.82, z - 3.0), Color(0.85, 0.72, 0.43))
-    for i in range(2000):
-        _box(world_root, "Lane dash", Vector3(0.055, 0.025, 2.0), Vector3(0, -0.025, -float(i) * 4.8), Color(0.75, 0.69, 0.48))
-    _build_city_detail()
+        _box(chunk, "Gold curb", Vector3(0.22, 0.22, CHUNK_LENGTH), Vector3(float(side) * 4.62, -0.08, -CHUNK_LENGTH * 0.5), Color(0.68, 0.43, 0.19))
+        for dash in range(10):
+            _box(chunk, "Lane dash", Vector3(0.055, 0.026, 2.5), Vector3(float(side) * 1.25, -0.015, -4.0 - float(dash) * 8.0), Color(0.78, 0.7, 0.51))
+        var building_x := float(side) * 8.2
+        var height := 13.0 + float((index * 7 + side * 3) % 8)
+        _box(chunk, "Art deco building", Vector3(6.4, height, 18.0), Vector3(building_x, height * 0.5 - 0.1, -CHUNK_LENGTH * 0.5), concrete)
+        _box(chunk, "Building cornice", Vector3(6.7, 0.42, 18.3), Vector3(building_x, height - 0.05, -CHUNK_LENGTH * 0.5), Color(0.61, 0.48, 0.31))
+        _box(chunk, "Building base", Vector3(6.55, 0.7, 18.2), Vector3(building_x, 0.35, -CHUNK_LENGTH * 0.5), Color(0.22, 0.24, 0.21))
+        for row in range(4):
+            for col in range(3):
+                var wx := building_x + float(col - 1) * 1.85
+                var wy := 2.1 + float(row) * 2.55
+                var wz := -CHUNK_LENGTH * 0.5 + 9.08
+                _box(chunk, "Window recess", Vector3(1.12, 1.62, 0.16), Vector3(wx, wy, wz), Color(0.12, 0.14, 0.13))
+                var pane := lit_glass if ((index * 5 + row * 3 + col) % 7 == 0) else glass
+                _box(chunk, "Illuminated window", Vector3(0.86, 1.34, 0.07), Vector3(wx, wy, wz + 0.1), pane)
+                _box(chunk, "Window divider", Vector3(0.07, 1.34, 0.08), Vector3(wx, wy, wz + 0.15), Color(0.53, 0.45, 0.31))
+        if index % 3 == 0:
+            _box(chunk, "Red propaganda banner", Vector3(1.4, 3.4, 0.22), Vector3(building_x - float(side) * 2.2, height * 0.56, -CHUNK_LENGTH * 0.5 + 9.2), Color(0.55, 0.105, 0.055))
+            _box(chunk, "Banner emblem", Vector3(0.65, 0.65, 0.08), Vector3(building_x - float(side) * 2.2, height * 0.56, -CHUNK_LENGTH * 0.5 + 9.35), Color(0.93, 0.66, 0.3))
+        var lamp_x := float(side) * 5.25
+        _box(chunk, "Street lamp", Vector3(0.13, 5.2, 0.13), Vector3(lamp_x, 2.6, -12.0), Color(0.13, 0.17, 0.15))
+        _box(chunk, "Lamp housing", Vector3(0.85, 0.5, 0.72), Vector3(lamp_x, 5.1, -12.0), Color(0.92, 0.58, 0.25))
+        _box(chunk, "Lamp cap", Vector3(1.05, 0.13, 0.92), Vector3(lamp_x, 5.4, -12.0), Color(0.16, 0.19, 0.17))
+        _box(chunk, "Pipe", Vector3(0.16, 4.5, 0.16), Vector3(float(side) * 5.0, 2.25, -48.0), Color(0.34, 0.25, 0.17))
+    # A distant industrial silhouette keeps the avenue broad rather than corridor-like.
+    _box(chunk, "Distant factory", Vector3(17.0, 20.0, 9.0), Vector3(-22.0, 10.0, -CHUNK_LENGTH * 0.5), Color(0.19, 0.23, 0.22))
+    _box(chunk, "Factory chimney", Vector3(2.2, 28.0, 2.2), Vector3(23.0, 14.0, -CHUNK_LENGTH * 0.5 - 3.0), Color(0.29, 0.25, 0.2))
+    return chunk
 
 func _build_city_detail() -> void:
-    # Add visible facade detail to the camera-facing sides of every avenue block.
-    var glass_dark := Color(0.035, 0.095, 0.12)
-    var glass_lit := Color(0.95, 0.57, 0.25)
-    var concrete := Color(0.56, 0.48, 0.36)
-    var red := Color(0.66, 0.13, 0.075)
-    for side in [-1, 1]:
-        for i in range(30):
-            var z := -8.0 - float(i) * 11.0
-            var h := 9.0 + float((i * 7) % 12)
-            var x: float = float(side) * (9.0 + float(i % 3) * 3.2)
-            var front := z + 3.83
-            _box(world_root, "Facade cornice", Vector3(5.72, 0.32, 0.24), Vector3(x, h - 0.18, front), concrete)
-            _box(world_root, "Facade plinth", Vector3(5.65, 0.48, 0.22), Vector3(x, 0.38, front), Color(0.25, 0.24, 0.2))
-            for edge in [-1, 1]:
-                _box(world_root, "Facade pilaster", Vector3(0.18, h - 0.9, 0.18), Vector3(x + float(edge) * 2.58, h * 0.5, front + 0.08), concrete)
-            var rows := int((h - 2.6) / 2.25)
-            for row in range(rows):
-                var wy := 1.75 + float(row) * 2.25
-                for col in range(3):
-                    var wx := x + float(col - 1) * 1.68
-                    var pane_color := glass_lit if ((i * 13 + row * 7 + col * 3) % 6 == 0) else glass_dark
-                    _box(world_root, "Window frame", Vector3(0.91, 1.38, 0.13), Vector3(wx, wy, front + 0.11), Color(0.17, 0.19, 0.17))
-                    _box(world_root, "Window glass", Vector3(0.69, 1.12, 0.055), Vector3(wx, wy + 0.015, front + 0.19), pane_color)
-                    _box(world_root, "Window sill", Vector3(1.02, 0.12, 0.25), Vector3(wx, wy - 0.72, front + 0.2), concrete)
-                    _box(world_root, "Window mullion", Vector3(0.055, 1.12, 0.07), Vector3(wx, wy, front + 0.235), concrete)
-            if i % 5 == 0:
-                _box(world_root, "Art deco sign", Vector3(2.25, 0.62, 0.18), Vector3(x, 2.0, front + 0.32), red)
-                _box(world_root, "Sign lettering", Vector3(1.62, 0.075, 0.08), Vector3(x, 2.0, front + 0.44), Color(1.0, 0.75, 0.38))
-                _box(world_root, "Entrance canopy", Vector3(2.8, 0.16, 1.15), Vector3(x, 3.0, front + 0.55), Color(0.16, 0.2, 0.18))
-                for post_x in [-1.1, 1.1]:
-                    _box(world_root, "Entrance column", Vector3(0.18, 2.45, 0.18), Vector3(x + post_x, 1.55, front + 0.92), concrete)
-        # A layered skyline creates depth and a visible horizon behind the avenue.
-        for i in range(18):
-            var far_x: float = float(side) * (27.0 + float(i % 4) * 5.5)
-            var far_h := 13.0 + float((i * 11) % 25)
-            var far_z := -18.0 - float(i) * 18.0
-            _box(world_root, "Distant skyline", Vector3(8.0 + float(i % 3) * 2.0, far_h, 10.0), Vector3(far_x, far_h * 0.5, far_z), Color(0.17, 0.22, 0.22))
-            _box(world_root, "Distant rooftop", Vector3(8.2 + float(i % 3) * 2.0, 0.28, 10.2), Vector3(far_x, far_h + 0.14, far_z), Color(0.3, 0.26, 0.2))
-    # A boulevard rhythm of lanterns, benches and warm pools of light.
-    for i in range(24):
-        var z := -12.0 - float(i) * 14.0
-        var side := -1 if i % 2 == 0 else 1
-        var x := float(side) * 5.45
-        _box(world_root, "Lantern post", Vector3(0.13, 5.3, 0.13), Vector3(x, 2.65, z), Color(0.12, 0.17, 0.16))
-        _box(world_root, "Lantern housing", Vector3(0.78, 0.52, 0.78), Vector3(x, 5.2, z), Color(0.95, 0.61, 0.27))
-        _box(world_root, "Lantern cap", Vector3(1.02, 0.13, 1.02), Vector3(x, 5.53, z), Color(0.18, 0.22, 0.19))
-        _box(world_root, "Boulevard bench", Vector3(1.65, 0.16, 0.48), Vector3(float(side) * 6.25, 0.58, z - 2.5), Color(0.32, 0.18, 0.11))
-        _box(world_root, "Bench leg", Vector3(0.12, 0.52, 0.12), Vector3(float(side) * 5.7, 0.28, z - 2.5), Color(0.16, 0.19, 0.17))
-        _box(world_root, "Bench leg", Vector3(0.12, 0.52, 0.12), Vector3(float(side) * 6.8, 0.28, z - 2.5), Color(0.16, 0.19, 0.17))
+    # City scenery is generated as reusable road chunks in _build_road_chunk().
 
 func _build_player() -> void:
     player = Node3D.new()
@@ -397,16 +379,10 @@ func _process(delta: float) -> void:
     _update_score()
 
 func _recycle_scenery() -> void:
-    for item in world_root.get_children():
-        if not item is MeshInstance3D:
-            continue
-        var world_z: float = item.position.z + world_root.position.z
-        if item.name == "Lane dash":
-            if world_z > SCENERY_RECYCLE_DISTANCE:
-                item.position.z -= 9600.0
-        elif item.name == "Soviet city block" or item.name == "Facade band" or item.name == "Monument plinth" or item.name == "Street lamp" or item.name == "Street lamp head" or item.name == "Facade cornice" or item.name == "Facade plinth" or item.name == "Facade pilaster" or item.name == "Window frame" or item.name == "Window glass" or item.name == "Window sill" or item.name == "Window mullion" or item.name == "Art deco sign" or item.name == "Sign lettering" or item.name == "Entrance canopy" or item.name == "Entrance column" or item.name == "Distant skyline" or item.name == "Distant rooftop" or item.name == "Lantern post" or item.name == "Lantern housing" or item.name == "Lantern cap" or item.name == "Boulevard bench" or item.name == "Bench leg":
-            if world_z > SCENERY_RECYCLE_DISTANCE:
-                item.position.z -= SCENERY_RECYCLE_LENGTH
+    for chunk in road_chunks:
+        var world_z := chunk.position.z + world_root.position.z
+        if world_z > CHUNK_LENGTH:
+            chunk.position.z -= CHUNK_LENGTH * float(CHUNK_COUNT)
 
 func _check_items() -> void:
     for item in world_root.get_children():
