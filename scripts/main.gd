@@ -4,6 +4,8 @@ const LANE_WIDTH := 2.5
 const FORWARD_SPEED := 13.0
 const PLAYER_Z := 3.0
 const SPAWN_AHEAD := 115.0
+const SCENERY_RECYCLE_DISTANCE := 18.0
+const SCENERY_RECYCLE_LENGTH := 330.0
 const DESPAWN_BEHIND := 12.0
 const GRAVITY := 24.0
 const JUMP_VELOCITY := 10.0
@@ -45,10 +47,10 @@ func _build_world() -> void:
     world_root = Node3D.new()
     world_root.name = "World"
     add_child(world_root)
-    _box(world_root, "Road", Vector3(9.0, 0.35, 260.0), Vector3(0, -0.22, -105.0), Color(0.13, 0.15, 0.14))
+    _box(world_root, "Road", Vector3(9.0, 0.35, 10000.0), Vector3(0, -0.22, -4900.0), Color(0.13, 0.15, 0.14))
     for side in [-1, 1]:
-        _box(world_root, "Gold curb", Vector3(0.22, 0.2, 260.0), Vector3(side * 4.6, -0.08, -105.0), Color(0.72, 0.54, 0.2))
-        for i in range(22):
+        _box(world_root, "Gold curb", Vector3(0.22, 0.2, 10000.0), Vector3(side * 4.6, -0.08, -4900.0), Color(0.72, 0.54, 0.2))
+        for i in range(30):
             var z := -8.0 - float(i) * 11.0
             var h := 9.0 + float((i * 7) % 12)
             var x := side * (9.0 + float(i % 3) * 3.2)
@@ -56,7 +58,7 @@ func _build_world() -> void:
             _box(world_root, "Facade band", Vector3(5.56, 0.22, 0.12), Vector3(x, h * 0.68, z - 3.82), Color(0.66, 0.22, 0.13))
             if i % 4 == 0:
                 _box(world_root, "Monument plinth", Vector3(2.0, 1.0, 2.0), Vector3(side * 6.4, 0.5, z - 2.0), Color(0.42, 0.42, 0.37))
-    for i in range(54):
+    for i in range(2000):
         _box(world_root, "Lane dash", Vector3(0.055, 0.025, 2.0), Vector3(0, -0.025, -float(i) * 4.8), Color(0.75, 0.69, 0.48))
 
 func _build_player() -> void:
@@ -168,10 +170,17 @@ func _process(delta: float) -> void:
     spawn_distance += FORWARD_SPEED * delta
     if spawn_distance >= 13.0:
         spawn_distance = 0.0
-        _spawn_obstacle_row(-SPAWN_AHEAD)
+        _spawn_obstacle_row(PLAYER_Z - world_root.position.z - SPAWN_AHEAD)
+    _recycle_scenery()
     _check_items()
     _cleanup_items()
     _update_score()
+
+func _recycle_scenery() -> void:
+    for item in world_root.get_children():
+        if item is MeshInstance3D and (item.name == "Soviet city block" or item.name == "Facade band" or item.name == "Monument plinth"):
+            if item.position.z + world_root.position.z > SCENERY_RECYCLE_DISTANCE:
+                item.position.z -= SCENERY_RECYCLE_LENGTH
 
 func _check_items() -> void:
     for item in world_root.get_children():
