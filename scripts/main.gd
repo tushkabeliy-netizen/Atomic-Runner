@@ -46,7 +46,7 @@ func _ready() -> void:
     _build_camera()
     _build_ui()
     _spawn_initial_course()
-    spawn_distance = 243.0
+    spawn_distance = 0.0
 
 func _build_world() -> void:
     var environment_node := WorldEnvironment.new()
@@ -216,7 +216,7 @@ func _process(delta: float) -> void:
         leg_left.rotation.x = 0.0
         leg_right.rotation.x = 0.0
     spawn_distance += FORWARD_SPEED * delta
-    if spawn_distance >= 13.0:
+    if distance >= 243.0 and spawn_distance >= 13.0:
         spawn_distance = 0.0
         _spawn_obstacle_row(PLAYER_Z - world_root.position.z - SPAWN_AHEAD)
     _recycle_scenery()
