@@ -178,8 +178,17 @@ func _process(delta: float) -> void:
 
 func _recycle_scenery() -> void:
     for item in world_root.get_children():
-        if item is MeshInstance3D and (item.name == "Soviet city block" or item.name == "Facade band" or item.name == "Monument plinth"):
-            if item.position.z + world_root.position.z > SCENERY_RECYCLE_DISTANCE:
+        if not item is MeshInstance3D:
+            continue
+        var world_z := item.position.z + world_root.position.z
+        if item.name == "Road" or item.name == "Gold curb":
+            if world_z - 5000.0 > SCENERY_RECYCLE_DISTANCE:
+                item.position.z -= 10000.0
+        elif item.name == "Lane dash":
+            if world_z > SCENERY_RECYCLE_DISTANCE:
+                item.position.z -= 9600.0
+        elif item.name == "Soviet city block" or item.name == "Facade band" or item.name == "Monument plinth":
+            if world_z > SCENERY_RECYCLE_DISTANCE:
                 item.position.z -= SCENERY_RECYCLE_LENGTH
 
 func _check_items() -> void:
