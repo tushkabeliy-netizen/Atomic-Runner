@@ -10,6 +10,8 @@ A Godot 4.3 Android endless-runner prototype with a Soviet retro-futurist direct
 - A simple low-poly runner character with a helmet, backpack, chest armor and swinging limbs.
 - Procedurally placed token lines, barriers and overhead obstacles.
 - Token collection, distance-based score, collision/game-over state and tap-to-restart.
+- On-screen pause/resume control in the upper-right corner (Escape on desktop).
+- Rotating/animated runner movement and city scenery recycling for long sessions.
 - Recycled road markings, road segments, street lamps and city blocks intended to keep the route extending.
 - Soviet-style city dressing, red facade bands and a muted daylight environment.
 
@@ -27,7 +29,7 @@ The GitHub Actions workflow at `.github/workflows/android-apk.yml` builds a debu
 
 The workflow now uses the published `barichello/godot-ci:4.3` image, prepares the Godot export templates, installs the Android build template and checks that the APK exists before uploading it.
 
-**Build status: pending verification.** The workflow configuration has been corrected, but a successful run and a device installation test have not yet been confirmed. No tested APK is being represented as ready.
+**Build status: pending verification.** The workflow configuration has been corrected, but a successful run and a device installation test have not yet been confirmed. GitHub currently reports no CI status checks for the latest code commit. No tested APK is being represented as ready.
 
 ## Not implemented yet
 
