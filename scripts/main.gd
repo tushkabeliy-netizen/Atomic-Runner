@@ -74,7 +74,7 @@ func _build_world() -> void:
         for i in range(30):
             var z := -8.0 - float(i) * 11.0
             var h := 9.0 + float((i * 7) % 12)
-            var x := side * (9.0 + float(i % 3) * 3.2)
+            var x: float = float(side) * (9.0 + float(i % 3) * 3.2)
             _box(world_root, "Soviet city block", Vector3(5.5, h, 7.5), Vector3(x, h * 0.5 - 0.1, z), Color(0.29, 0.32, 0.29))
             _box(world_root, "Facade band", Vector3(5.56, 0.22, 0.12), Vector3(x, h * 0.68, z - 3.82), Color(0.66, 0.22, 0.13))
             if i % 4 == 0:
@@ -238,7 +238,7 @@ func _recycle_scenery() -> void:
     for item in world_root.get_children():
         if not item is MeshInstance3D:
             continue
-        var world_z := item.position.z + world_root.position.z
+        var world_z: float = item.position.z + world_root.position.z
         if item.name == "Lane dash":
             if world_z > SCENERY_RECYCLE_DISTANCE:
                 item.position.z -= 9600.0
@@ -252,8 +252,8 @@ func _check_items() -> void:
             continue
         if item.name != "Token" and item.name != "Obstacle" and item.name != "LowObstacle":
             continue
-        var relative_z := item.position.z + world_root.position.z
-        var dx := abs(item.position.x - player.position.x)
+        var relative_z: float = item.position.z + world_root.position.z
+        var dx: float = absf(item.position.x - player.position.x)
         if abs(relative_z - PLAYER_Z) < 1.0 and dx < 0.95:
             if item.name == "Token":
                 tokens += 1
@@ -324,7 +324,7 @@ func _input(event: InputEvent) -> void:
             _handle_swipe(event.position - touch_start)
             touch_active = false
     elif event is InputEventScreenDrag and touch_active:
-        var diff := event.position - touch_start
+        var diff: Vector2 = event.position - touch_start
         if diff.length() > 75.0:
             _handle_swipe(diff)
             touch_active = false
