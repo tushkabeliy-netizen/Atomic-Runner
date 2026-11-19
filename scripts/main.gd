@@ -68,9 +68,9 @@ func _build_world() -> void:
     world_root = Node3D.new()
     world_root.name = "World"
     add_child(world_root)
-    _box(world_root, "Road", Vector3(9.0, 0.35, 10000.0), Vector3(0, -0.22, -4900.0), Color(0.13, 0.15, 0.14))
+    _box(world_root, "Road", Vector3(9.0, 0.35, 1000000.0), Vector3(0, -0.22, -499900.0), Color(0.13, 0.15, 0.14))
     for side in [-1, 1]:
-        _box(world_root, "Gold curb", Vector3(0.22, 0.2, 10000.0), Vector3(side * 4.6, -0.08, -4900.0), Color(0.72, 0.54, 0.2))
+        _box(world_root, "Gold curb", Vector3(0.22, 0.2, 1000000.0), Vector3(side * 4.6, -0.08, -499900.0), Color(0.72, 0.54, 0.2))
         for i in range(30):
             var z := -8.0 - float(i) * 11.0
             var h := 9.0 + float((i * 7) % 12)
@@ -196,9 +196,6 @@ func _spawn_low_barrier(lane_index: int, z: float) -> void:
 func _process(delta: float) -> void:
     if game_over or paused:
         return
-    for item in world_root.get_children():
-        if item is MeshInstance3D and item.name == "Token":
-            item.rotation.z += delta * 2.8
     distance += FORWARD_SPEED * delta
     score = int(distance) + tokens * 25
     world_root.position.z = distance
@@ -242,10 +239,7 @@ func _recycle_scenery() -> void:
         if not item is MeshInstance3D:
             continue
         var world_z := item.position.z + world_root.position.z
-        if item.name == "Road" or item.name == "Gold curb":
-            if world_z - 5000.0 > SCENERY_RECYCLE_DISTANCE:
-                item.position.z -= 10000.0
-        elif item.name == "Lane dash":
+        if item.name == "Lane dash":
             if world_z > SCENERY_RECYCLE_DISTANCE:
                 item.position.z -= 9600.0
         elif item.name == "Soviet city block" or item.name == "Facade band" or item.name == "Monument plinth" or item.name == "Street lamp" or item.name == "Street lamp head":
