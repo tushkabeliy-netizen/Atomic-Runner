@@ -32,11 +32,13 @@ jobs:
       - name: Prepare Godot export templates and Android settings
         run: |
           mkdir -p "$HOME/.local/share/godot/export_templates" "$HOME/.config"
-          if [ -d /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ]; then
-            cp -a /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable "$HOME/.local/share/godot/export_templates/"
-          fi
-          if [ -d /root/.config/godot ]; then
-            cp -a /root/.config/godot "$HOME/.config/"
+          if [ "$HOME" != "/root" ]; then
+            if [ -d /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ]; then
+              cp -a /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable "$HOME/.local/share/godot/export_templates/"
+            fi
+            if [ -d /root/.config/godot ]; then
+              cp -a /root/.config/godot "$HOME/.config/"
+            fi
           fi
           godot --version
           test -d "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
@@ -49,7 +51,6 @@ jobs:
           mkdir -p build
           godot --headless --verbose --path . --install-android-build-template --export-debug "Android" build/AtomicRunner-debug.apk
           test -s build/AtomicRunner-debug.apk
-          file build/AtomicRunner-debug.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
