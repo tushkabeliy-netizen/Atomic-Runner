@@ -308,7 +308,7 @@ func _recycle_scenery() -> void:
         if item.name == "Lane dash":
             if world_z > SCENERY_RECYCLE_DISTANCE:
                 item.position.z -= 9600.0
-        elif item.name == "Soviet city block" or item.name == "Facade band" or item.name == "Monument plinth" or item.name == "Street lamp" or item.name == "Street lamp head":
+        elif item.name == "Soviet city block" or item.name == "Facade band" or item.name == "Monument plinth" or item.name == "Street lamp" or item.name == "Street lamp head" or item.name == "Facade cornice" or item.name == "Facade plinth" or item.name == "Facade pilaster" or item.name == "Window frame" or item.name == "Window glass" or item.name == "Window sill" or item.name == "Window mullion" or item.name == "Art deco sign" or item.name == "Sign lettering" or item.name == "Entrance canopy" or item.name == "Entrance column" or item.name == "Distant skyline" or item.name == "Distant rooftop" or item.name == "Lantern post" or item.name == "Lantern housing" or item.name == "Lantern cap" or item.name == "Boulevard bench" or item.name == "Bench leg":
             if world_z > SCENERY_RECYCLE_DISTANCE:
                 item.position.z -= SCENERY_RECYCLE_LENGTH
 
