@@ -12,6 +12,7 @@ var jumping := false
 var sliding := false
 var slide_time := 0.0
 var score := 0
+var distance_accumulator := 0.0
 var game_over := false
 var touch_start := Vector2.ZERO
 var touch_active := false
@@ -124,10 +125,34 @@ func _process(delta: float) -> void:
             player_body.scale = Vector3.ONE
     world_root.position.z = -player_z
     camera.position.x = lerp(camera.position.x, player.position.x * 0.35, delta * 3.0)
-    score += int(FORWARD_SPEED * delta)
+    distance_accumulator += FORWARD_SPEED * delta
+    score = int(distance_accumulator)
+    _check_pickups_and_obstacles()
     _update_score()
     if abs(player_z) > TRACK_LENGTH - 20.0:
         player_z = 0.0
+
+func _check_pickups_and_obstacles() -> void:
+    for item in world_root.get_children():
+        if not item is MeshInstance3D:
+            continue
+        if item.name != "Token" and item.name != "Obstacle":
+            continue
+        var dz := abs(item.global_position.z - player.global_position.z)
+        var dx := abs(item.global_position.x - player.global_position.x)
+        if dz < 1.0 and dx < 0.95:
+            if item.name == "Token":
+                score += 25
+                distance_accumulator = float(score)
+                item.queue_free()
+            elif player.position.y < 0.45 and not sliding:
+                _end_run()
+            elif player.position.y < 0.45 and not jumping:
+                _end_run()
+
+func _end_run() -> void:
+    game_over = true
+    hint_label.text = "ЗАБЕГ ОКОНЧЕН  •  ЖЕТОНЫ: %06d" % score
 
 func _input(event: InputEvent) -> void:
     if event is InputEventScreenTouch:
