@@ -19,6 +19,8 @@ var score := 0
 var tokens := 0
 var distance := 0.0
 var game_over := false
+var paused := false
+var pause_label: Label
 var touch_start := Vector2.ZERO
 var touch_active := false
 var spawn_distance := 0.0
@@ -142,6 +144,14 @@ func _build_ui() -> void:
     status_label.add_theme_color_override("font_color", Color(0.94, 0.88, 0.72))
     status_label.text = "СВАЙП ← →  •  ПРЫЖОК ↑  •  ПОДКАТ ↓"
     layer.add_child(status_label)
+    pause_label = Label.new()
+    pause_label.position = Vector2(610, 24)
+    pause_label.size = Vector2(90, 54)
+    pause_label.text = "Ⅱ"
+    pause_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    pause_label.add_theme_font_size_override("font_size", 36)
+    pause_label.add_theme_color_override("font_color", Color(0.98, 0.76, 0.3))
+    layer.add_child(pause_label)
     _update_score()
 
 func _spawn_initial_course() -> void:
@@ -184,8 +194,11 @@ func _spawn_low_barrier(lane_index: int, z: float) -> void:
     _box(world_root, "LowObstacle", Vector3(1.55, 0.65, 1.0), Vector3(float(lane_index) * LANE_WIDTH, 1.35, z), Color(0.34, 0.37, 0.34))
 
 func _process(delta: float) -> void:
-    if game_over:
+    if game_over or paused:
         return
+    for item in world_root.get_children():
+        if item is MeshInstance3D and item.name == "Token":
+            item.rotation.z += delta * 2.8
     distance += FORWARD_SPEED * delta
     score = int(distance) + tokens * 25
     world_root.position.z = distance
@@ -286,16 +299,28 @@ func _restart() -> void:
     spawn_distance = 0.0
     world_root.position.z = 0.0
     game_over = false
+    paused = false
+    pause_label.text = "Ⅱ"
     status_label.text = "СВАЙП ← →  •  ПРЫЖОК ↑  •  ПОДКАТ ↓"
     _spawn_initial_course()
     _update_score()
 
 func _input(event: InputEvent) -> void:
+    if event is InputEventScreenTouch and event.pressed and event.position.x > 590.0 and event.position.y < 100.0 and not game_over:
+        _toggle_pause()
+        return
+    if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE and not game_over:
+        _toggle_pause()
+        return
     if game_over:
         if event is InputEventScreenTouch and event.pressed:
             _restart()
         elif event is InputEventKey and event.pressed and event.keycode == KEY_ENTER:
             _restart()
+        return
+    if paused:
+        if event is InputEventScreenTouch and event.pressed:
+            _toggle_pause()
         return
     if event is InputEventScreenTouch:
         if event.pressed:
@@ -323,6 +348,11 @@ func _handle_swipe(delta: Vector2) -> void:
         _jump()
     else:
         _slide()
+
+func _toggle_pause() -> void:
+    paused = not paused
+    pause_label.text = "▶" if paused else "Ⅱ"
+    status_label.text = "ПАУЗА  •  НАЖМИ ▶ ДЛЯ ПРОДОЛЖЕНИЯ" if paused else "СВАЙП ← →  •  ПРЫЖОК ↑  •  ПОДКАТ ↓"
 
 func _jump() -> void:
     if not jumping and not sliding:
