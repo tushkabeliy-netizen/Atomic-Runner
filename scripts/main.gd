@@ -283,7 +283,7 @@ func _restart() -> void:
     score = 0
     tokens = 0
     distance = 0.0
-    spawn_distance = 243.0
+    spawn_distance = 0.0
     world_root.position.z = 0.0
     game_over = false
     status_label.text = "СВАЙП ← →  •  ПРЫЖОК ↑  •  ПОДКАТ ↓"
