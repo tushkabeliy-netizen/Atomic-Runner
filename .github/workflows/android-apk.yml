@@ -41,15 +41,13 @@ jobs:
           godot --version
           test -d "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
 
-      - name: Import project and install Android build template
-        run: |
-          godot --headless --editor --path . --quit
-          godot --headless --editor --path . --install-android-build-template --quit
+      - name: Import project
+        run: godot --headless --editor --path . --quit
 
       - name: Export Android debug APK
         run: |
           mkdir -p build
-          godot --headless --verbose --path . --export-debug "Android" build/AtomicRunner-debug.apk
+          godot --headless --verbose --path . --install-android-build-template --export-debug "Android" build/AtomicRunner-debug.apk
           test -s build/AtomicRunner-debug.apk
           file build/AtomicRunner-debug.apk
 
